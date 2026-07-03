@@ -1,10 +1,10 @@
 import { z } from "zod";
-import { flattenFields, listSecretKeys } from "./config-fields";
+import { flattenFields, listSecretKeys } from "./config-fields.js";
 import type {
   ConnectorCronDecl,
   ConnectorDefinition,
   SerializedManifest,
-} from "./types";
+} from "./types.js";
 
 /** Version of the SDK contract implemented by this host / build. */
 export const SDK_VERSION = "1.0.0";

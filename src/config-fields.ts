@@ -10,7 +10,7 @@ import type {
   SelectFieldMeta,
   TextFieldMeta,
   UrlFieldMeta,
-} from "./types";
+} from "./types.js";
 
 type FieldInput<T extends ConfigFieldMeta> = Omit<T, "type">;
 

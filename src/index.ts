@@ -9,24 +9,24 @@
  * every connector zip and must stay extractable to its own repo.
  */
 
-export * from "./types";
+export * from "./types.js";
 export {
   cf,
   buildConfigSchema,
   validateConfig,
   flattenFields,
   listSecretKeys,
-} from "./config-fields";
+} from "./config-fields.js";
 export {
   defineConnector,
   serializeManifest,
   compareSemver,
   parseCronInterval,
   SDK_VERSION,
-} from "./define";
+} from "./define.js";
 export {
   ConnectorError,
   ConnectorPermissionError,
   ConnectorConfigError,
   ConnectorHttpError,
-} from "./errors";
+} from "./errors.js";
