@@ -120,6 +120,36 @@ export interface ConnectorEventDecl {
   description: string;
 }
 
+/**
+ * Inbound OAuth client declaration: an EXTERNAL app (e.g. a CMS module)
+ * authenticates INTO Chorus Pay on behalf of the supplier, via the core
+ * OAuth 2.0 authorization server. Publishing the connector registers/claims
+ * the `oauth_clients` row; the supplier's consent auto-installs and activates
+ * the connector, and the token exchange invokes `lifecycle.onOauthConnected`.
+ *
+ * Not to be confused with `oauth` (outbound broker: Chorus Pay is the OAuth
+ * CLIENT of a remote provider).
+ */
+export interface ConnectorInboundOauthConfig {
+  /**
+   * OAuth client_id the external app uses. Stable forever (deployed apps
+   * hardcode it). Claimed at publish time; a client_id already owned by
+   * another connector fails the publish.
+   */
+  clientId: string;
+  /** Display name on the consent screen (defaults to the connector name). */
+  name?: string;
+  /** Scopes the client may request (requests are intersected against this). */
+  scopes: string[];
+  /**
+   * Allowed redirect URIs. `["*"]` accepts any (for self-hosted apps living
+   * on arbitrary merchant domains); `*` segments act as wildcards.
+   */
+  redirectUris: string[];
+  /** Require PKCE (public client). Strongly recommended. */
+  pkce: boolean;
+}
+
 export interface ConnectorCronDecl {
   /** Interval: `"5m"`, `"1h"`, `"24h"`… Minimum granularity = dispatcher cron cadence. */
   every: string;
@@ -148,6 +178,8 @@ export interface ConnectorManifest {
    */
   allowedDomainsFromConfig?: string[];
   oauth?: ConnectorOAuthConfig;
+  /** Inbound OAuth client (an external app authenticates INTO Chorus Pay). */
+  inboundOauth?: ConnectorInboundOauthConfig;
   /** Custom events this connector may emit (namespaced by the core). */
   events?: ConnectorEventDecl[];
   /** Config page definition (fields, groups, action buttons). */
@@ -304,6 +336,28 @@ export interface SupplierProfileDto {
   email: string;
 }
 
+/**
+ * Outbound webhook endpoint OWNED by the installation. Provisioned via
+ * `ctx.webhooks`, delivered by the core webhook infrastructure (retries, HMAC
+ * `X-Chorus-Pay-Signature`). Shown read-mostly in the supplier UI ("managed by
+ * <connector>", edits warn). Deleted with the installation.
+ */
+export interface ManagedWebhook {
+  id: string;
+  url: string;
+  description: string | null;
+  /** Subscribed event types, e.g. `{ "invoice.paid": true }`. */
+  events: Record<string, boolean>;
+  enabled: boolean;
+  /**
+   * HMAC secret (`whsec_…`). Returned so the connector can hand it to the
+   * external app (e.g. in the OAuth token response) — treat it as a secret.
+   */
+  secret: string;
+  /** ISO date string. */
+  createdAt: string;
+}
+
 export interface ConnectorCtx {
   installation: ConnectorInstallationInfo;
 
@@ -386,6 +440,31 @@ export interface ConnectorCtx {
     get(key: string): Promise<JsonValue | null>;
     set(key: string, value: JsonValue): Promise<void>;
     delete(key: string): Promise<void>;
+  };
+
+  /**
+   * Outbound webhook endpoints owned by this installation (delivered by the
+   * core, with retries and HMAC signing). Capped per installation. `update`
+   * deliberately cannot touch supplier-managed fields (basic auth credentials)
+   * nor the secret.
+   */
+  webhooks: {
+    create(input: {
+      url: string;
+      events: Record<string, boolean>;
+      description?: string;
+    }): Promise<ManagedWebhook>;
+    list(): Promise<ManagedWebhook[]>;
+    update(
+      id: string,
+      patch: {
+        url?: string;
+        events?: Record<string, boolean>;
+        enabled?: boolean;
+        description?: string;
+      }
+    ): Promise<ManagedWebhook>;
+    delete(id: string): Promise<void>;
   };
 }
 
@@ -523,6 +602,47 @@ export interface CheckConnectionResult {
 }
 
 // ---------------------------------------------------------------------------
+// Lifecycle (inbound OAuth)
+// ---------------------------------------------------------------------------
+
+export interface OauthConnectedEvent {
+  /** Shop/app base URL passed by the external client, when provided. */
+  shopUrl?: string;
+  /** Scopes actually granted. */
+  scopes: string[];
+  /** The inbound OAuth client_id that connected. */
+  clientId: string;
+}
+
+export interface OauthConnectedResult {
+  /**
+   * Flat string entries merged into the OAuth token JSON response, so the
+   * external app receives them at exchange time (e.g. `webhook_secret`).
+   * Standard OAuth keys (access_token, refresh_token…) cannot be overridden.
+   */
+  tokenResponseExtras?: Record<string, string>;
+}
+
+/**
+ * Lifecycle handlers around the INBOUND OAuth flow (`manifest.inboundOauth`).
+ * `onOauthConnected` runs BLOCKING during the token exchange (short timeout):
+ * provision fast, no slow remote calls. It MUST be idempotent — reconnecting
+ * must converge to the same webhook endpoint and the same secret. A failure
+ * never blocks token delivery (the core logs and continues).
+ */
+export interface ConnectorLifecycle {
+  onOauthConnected?(
+    ctx: ConnectorCtx,
+    event: OauthConnectedEvent
+  ): Promise<OauthConnectedResult | void>;
+  /** Token revoked or installation removed — best-effort cleanup. */
+  onOauthRevoked?(
+    ctx: ConnectorCtx,
+    event: { shopUrl?: string; clientId: string }
+  ): Promise<void>;
+}
+
+// ---------------------------------------------------------------------------
 // The connector definition (default export of every connector module)
 // ---------------------------------------------------------------------------
 
@@ -542,4 +662,6 @@ export interface ConnectorDefinition {
   actions?: Record<string, ConnectorActionHandler>;
   /** Scheduled jobs, keyed by job name. */
   cron?: Record<string, ConnectorCronJob>;
+  /** Inbound-OAuth lifecycle handlers (see `ConnectorLifecycle`). */
+  lifecycle?: ConnectorLifecycle;
 }

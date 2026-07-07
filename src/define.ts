@@ -7,9 +7,10 @@ import type {
 } from "./types.js";
 
 /** Version of the SDK contract implemented by this host / build. */
-export const SDK_VERSION = "1.0.0";
+export const SDK_VERSION = "1.1.0";
 
 const CRON_EVERY_REGEX = /^\d+(m|h|d)$/;
+const OAUTH_CLIENT_ID_REGEX = /^[a-z][a-z0-9_-]{1,63}$/;
 const SEMVER_REGEX = /^\d+\.\d+\.\d+$/;
 const ID_REGEX = /^[a-z][a-z0-9-]{1,48}$/;
 const DOMAIN_REGEX = /^(\*\.)?[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$/i;
@@ -73,6 +74,17 @@ const manifestSchema = z.object({
       clientIdConfigKey: z.string().optional(),
       clientSecretConfigKey: z.string().optional(),
       extraAuthParams: z.record(z.string()).optional(),
+    })
+    .optional(),
+  inboundOauth: z
+    .object({
+      clientId: z
+        .string()
+        .regex(OAUTH_CLIENT_ID_REGEX, "clientId must be lowercase [a-z0-9_-]"),
+      name: z.string().optional(),
+      scopes: z.array(z.string().min(1)).min(1),
+      redirectUris: z.array(z.string().min(1)).min(1),
+      pkce: z.boolean(),
     })
     .optional(),
   events: z
@@ -166,6 +178,14 @@ export function defineConnector(def: ConnectorDefinition): ConnectorDefinition {
     if (!CRON_EVERY_REGEX.test(job.every)) {
       throw new Error(
         `Connector "${def.manifest.id}": cron "${name}" has invalid interval "${job.every}" (expected e.g. "5m", "1h", "1d")`
+      );
+    }
+  }
+
+  for (const [name, handler] of Object.entries(def.lifecycle ?? {})) {
+    if (typeof handler !== "function") {
+      throw new Error(
+        `Connector "${def.manifest.id}": lifecycle "${name}" must be a function`
       );
     }
   }
