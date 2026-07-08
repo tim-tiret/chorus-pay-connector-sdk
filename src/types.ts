@@ -206,6 +206,13 @@ export interface ConnectorInstallationInfo {
   /** User-chosen label for this installation ("Boutique Paris"…). */
   name: string;
   testMode?: boolean;
+  /**
+   * Public base URL of this installation's inbound routes
+   * (`https://…/api/connectors/<installationId>`). Lets a connector
+   * self-register webhooks on the remote service (e.g. Shopify
+   * `orders/create` → `${routesBaseUrl}/orders`).
+   */
+  routesBaseUrl?: string;
 }
 
 export interface ConnectorHttpRequest {
@@ -297,7 +304,17 @@ export interface PayLinkDto {
 
 export interface CreatePayLinkDto {
   description: string;
-  client_info?: { name: string; siret: string; email: string; address?: string };
+  /**
+   * Identité du client - tous les champs sont optionnels : un pay link peut
+   * être créé avec seulement l'email (voire rien), le client complète son
+   * SIRET sur la page du lien avant l'acceptation.
+   */
+  client_info?: {
+    name?: string;
+    siret?: string;
+    email?: string;
+    address?: string;
+  };
   /** Amounts (TTC/HT) are derived from the items by the core. */
   items: Array<{
     description: string;
@@ -405,6 +422,15 @@ export interface ConnectorCtx {
       key: string,
       value: string
     ): Promise<{ id: string; quote_number: string; amount: string; expires_at: string | null } | null>;
+    /**
+     * Send (or resend) the quote email for a pay link of this supplier.
+     * Runs the full core pipeline: PDF generation (lazy), email to
+     * `client_info.email`, `pay_link.sent` + `pay_link.quote_email_sent`
+     * events, and the `onQuoteConfirmed` shop gates.
+     */
+    sendQuoteEmail(
+      payLinkId: string
+    ): Promise<{ success: boolean; error?: string }>;
   };
 
   invoices: {
@@ -559,6 +585,13 @@ export interface ConnectorIncomingRequest {
   query: Record<string, string>;
   headers: Record<string, string>;
   body: JsonValue | string | null;
+  /**
+   * Raw request body EXACTLY as received (UTF-8 text), before any JSON
+   * parsing. Required to verify webhook signatures computed over the raw
+   * bytes (e.g. Shopify `X-Shopify-Hmac-Sha256` = base64 HMAC-SHA256 of the
+   * body) — re-serializing `body` would not reproduce the original bytes.
+   */
+  rawBody?: string | null;
 }
 
 export interface ConnectorRouteResponse {
