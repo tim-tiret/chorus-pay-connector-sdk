@@ -184,6 +184,12 @@ export interface ConnectorManifest {
   events?: ConnectorEventDecl[];
   /** Config page definition (fields, groups, action buttons). */
   configFields: ConfigElement[];
+  /**
+   * Merchant setup guide (Markdown), rendered by the Chorus Pay UI behind a
+   * "Guide d'installation" link. Typically injected at build time from a
+   * SETUP.md file rather than written inline.
+   */
+  setupGuide?: string;
 }
 
 /**
