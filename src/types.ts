@@ -190,6 +190,13 @@ export interface ConnectorManifest {
    * SETUP.md file rather than written inline.
    */
   setupGuide?: string;
+  /**
+   * Declarative "shop connected" badge: when the installation kv holds a
+   * non-empty value at `kvKey` (set by the connector on successful
+   * connection), the UI shows the badge without executing any connector
+   * code. A string value (e.g. the shop domain) is used as the label.
+   */
+  connectionBadge?: { kvKey: string };
 }
 
 /**
