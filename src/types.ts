@@ -702,6 +702,18 @@ export interface ConnectorLifecycle {
   /** Just before the installation row is deleted. Best-effort. */
   onUninstall?(ctx: ConnectorCtx): Promise<void>;
   /**
+   * About to save a new config while the installation is enabled — invoked
+   * BEFORE persisting, with ctx still bound to the OLD config (and the old
+   * http allowlist). `event.next` is the new decrypted config. Use it to tear
+   * down remote resources that the new config can no longer reach (e.g. a
+   * webhook on the previous shop). Best-effort: an error is surfaced as a
+   * warning, the save proceeds.
+   */
+  onConfigSaving?(
+    ctx: ConnectorCtx,
+    event: { next: Record<string, unknown> }
+  ): Promise<void>;
+  /**
    * Config saved while the installation is enabled — re-sync anything that
    * depends on it (webhook address, credentials…). Best-effort: an error is
    * surfaced as a warning, the config stays saved.
