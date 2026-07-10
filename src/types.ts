@@ -686,6 +686,27 @@ export interface ConnectorLifecycle {
     ctx: ConnectorCtx,
     event: { shopUrl?: string; clientId: string }
   ): Promise<void>;
+
+  // Installation lifecycle. Typical use: self-managed remote webhooks
+  // (register on enable / config change, remove on disable / uninstall) so
+  // the merchant never has to think about them.
+  /** Right after the installation is created (config is usually empty). */
+  onInstall?(ctx: ConnectorCtx): Promise<void>;
+  /**
+   * Installation switched ON (or auto-re-enabled). BLOCKING: a thrown error
+   * cancels the activation and is shown to the user.
+   */
+  onEnable?(ctx: ConnectorCtx): Promise<void>;
+  /** Installation switched OFF (manually or by category exclusivity). Best-effort. */
+  onDisable?(ctx: ConnectorCtx): Promise<void>;
+  /** Just before the installation row is deleted. Best-effort. */
+  onUninstall?(ctx: ConnectorCtx): Promise<void>;
+  /**
+   * Config saved while the installation is enabled — re-sync anything that
+   * depends on it (webhook address, credentials…). Best-effort: an error is
+   * surfaced as a warning, the config stays saved.
+   */
+  onConfigSaved?(ctx: ConnectorCtx): Promise<void>;
 }
 
 // ---------------------------------------------------------------------------
