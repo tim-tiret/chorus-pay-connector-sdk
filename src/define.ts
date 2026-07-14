@@ -7,7 +7,7 @@ import type {
 } from "./types.js";
 
 /** Version of the SDK contract implemented by this host / build. */
-export const SDK_VERSION = "1.2.0";
+export const SDK_VERSION = "2.0.0";
 
 const CRON_EVERY_REGEX = /^\d+(m|h|d)$/;
 const OAUTH_CLIENT_ID_REGEX = /^[a-z][a-z0-9_-]{1,63}$/;

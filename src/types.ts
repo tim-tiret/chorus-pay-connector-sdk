@@ -295,7 +295,6 @@ export interface PayLinkDto {
   metadata: JsonObject | null;
   /** Résultat de l'analyse IA du bon de commande, si disponible. */
   purchase_order_analysis: JsonObject | null;
-  test_mode: boolean;
   source: string | null;
   url: string;
   shipping_address: {
@@ -338,7 +337,6 @@ export interface CreatePayLinkDto {
   }>;
   metadata?: JsonObject;
   source: string;
-  test_mode?: boolean;
   shipping_address?: PayLinkDto["shipping_address"];
   /** ISO date; default +30 days. */
   expires_at?: string;
