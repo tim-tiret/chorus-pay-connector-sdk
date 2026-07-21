@@ -1,6 +1,6 @@
 {
   "name": "@chorus-pay/connector-sdk",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "SDK officiel pour créer des connecteurs Chorus Pay (ERP, boutiques)",
   "license": "MIT",
   "type": "module",

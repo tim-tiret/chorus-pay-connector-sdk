@@ -283,7 +283,17 @@ export interface PayLinkDto {
   amount_ht: string;
   currency: string;
   description: string;
-  client_info: { name: string; siret: string; email: string; address?: string };
+  client_info: {
+    name: string;
+    siret: string;
+    email: string;
+    /** Adresse complète affichable (peut inclure CP + ville). */
+    address?: string;
+    /** CP/ville structurés - absents sur les pay links antérieurs à leur
+     *  introduction ; retomber sur le parsing de `address` dans ce cas. */
+    postal_code?: string;
+    city?: string;
+  };
   items: Array<{
     description: string;
     quantity: number;
@@ -326,6 +336,8 @@ export interface CreatePayLinkDto {
     siret?: string;
     email?: string;
     address?: string;
+    postal_code?: string;
+    city?: string;
   };
   /** Amounts (TTC/HT) are derived from the items by the core. */
   items: Array<{
