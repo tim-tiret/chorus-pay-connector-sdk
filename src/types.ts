@@ -197,6 +197,13 @@ export interface ConnectorManifest {
    * code. A string value (e.g. the shop domain) is used as the label.
    */
   connectionBadge?: { kvKey: string };
+  /**
+   * Metadata key under which this connector stores the shop's own order
+   * number (the one the merchant sees: "#1001", "ABCDEFGH"). The core reads
+   * `order.metadata[orderReferenceMetadataKey]` to show that number in the
+   * emails and in the supplier UI; it knows no shop-specific key itself.
+   */
+  orderReferenceMetadataKey?: string;
 }
 
 /**
@@ -454,6 +461,15 @@ export interface ConnectorCtx {
     sendQuoteEmail(
       payLinkId: string
     ): Promise<{ success: boolean; error?: string }>;
+    /**
+     * Cancel a pay link of this supplier because the order was cancelled in
+     * the shop. Same path as a cancellation by the supplier (the client is
+     * emailed). Idempotent: `already_cancelled` when there is nothing left to
+     * do, `not_cancellable` when an invoice has already been deposited.
+     */
+    cancel(
+      payLinkId: string
+    ): Promise<{ outcome: "cancelled" | "already_cancelled" | "not_cancellable" | "not_found" }>;
   };
 
   invoices: {
