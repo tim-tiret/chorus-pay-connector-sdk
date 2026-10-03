@@ -204,6 +204,12 @@ export interface ConnectorManifest {
    * emails and in the supplier UI; it knows no shop-specific key itself.
    */
   orderReferenceMetadataKey?: string;
+  /**
+   * Prefix of a temporary value a module may store under
+   * `orderReferenceMetadataKey` before the real order number exists (e.g.
+   * `"CART-"`). The core never shows a value starting with it.
+   */
+  orderReferencePlaceholderPrefix?: string;
 }
 
 /**
