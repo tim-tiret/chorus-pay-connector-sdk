@@ -30,3 +30,4 @@ export {
   ConnectorConfigError,
   ConnectorHttpError,
 } from "./errors.js";
+export { formatInvoiceTitleWithServiceCode } from "./invoice-title.js";

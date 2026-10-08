@@ -57,6 +57,9 @@ Le plus simple pour démarrer : le template
   `ConnectorConfigError` — erreurs typées (reconnues par `error.code`).
 - Utilitaires : `buildConfigSchema`, `validateConfig`, `serializeManifest`,
   `compareSemver`, `SDK_VERSION`.
+- `formatInvoiceTitleWithServiceCode(titre, payLink)` (2.3.0) : titre de
+  facture ERP enrichi du devis, de l'engagement, du marché et du code service
+  lus dans l'analyse du bon de commande, le même pour tous les connecteurs ERP.
 
 ## Contrat
 

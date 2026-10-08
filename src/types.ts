@@ -461,8 +461,7 @@ export interface ConnectorCtx {
     /**
      * Send (or resend) the quote email for a pay link of this supplier.
      * Runs the full core pipeline: PDF generation (lazy), email to
-     * `client_info.email`, `pay_link.sent` + `pay_link.quote_email_sent`
-     * events, and the `onQuoteConfirmed` shop gates.
+     * `client_info.email` and the `order.message_sent` event.
      */
     sendQuoteEmail(
       payLinkId: string
@@ -594,30 +593,6 @@ export interface ErpInvoiceCapability {
   ): Promise<{ success: boolean; error?: string }>;
 }
 
-export interface GateResult {
-  success: boolean;
-  error?: string;
-}
-
-/**
- * Shop gates are BLOCKING calls in the invoice flow; hooks (see
- * `ConnectorDefinition.hooks`) are fire-and-forget. A gate must no-op fast
- * (success) when the pay link doesn't belong to its shop.
- */
-export interface ShopCapability {
-  /** Quote email sent → e.g. create a draft order. */
-  onQuoteConfirmed?(ctx: ConnectorCtx, input: { payLinkId: string }): Promise<GateResult>;
-  /** Client accepted → e.g. complete the order; may return a redirect URL. */
-  completeOrder?(
-    ctx: ConnectorCtx,
-    input: { payLinkId: string }
-  ): Promise<GateResult & { orderStatusUrl?: string }>;
-  /** Runs BEFORE the Chorus deposit; failure skips the deposit (manual retry). */
-  preDeposit?(
-    ctx: ConnectorCtx,
-    input: { payLinkId: string; invoiceId: string | null }
-  ): Promise<GateResult>;
-}
 
 // ---------------------------------------------------------------------------
 // Routes / hooks / actions / cron
@@ -763,7 +738,6 @@ export interface ConnectorDefinition {
   checkConnection(ctx: ConnectorCtx): Promise<CheckConnectionResult>;
   capabilities?: {
     invoice?: ErpInvoiceCapability;
-    shop?: ShopCapability;
   };
   /** Fire-and-forget reactions to core events, e.g. `"invoice.paid"`. */
   hooks?: Record<string, ConnectorHookHandler>;
